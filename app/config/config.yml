@@ -71,4 +71,16 @@ swiftmailer:
     spool: { type: memory }
 
 nfq_weather:
-    provider: openweathermap
+    provider: cached
+    providers:
+        openweathermap:
+            api_key: 'f46ee0a183d63a6bd806a57cffcd69bd'
+        wunderground:
+            api_key: '69286ad737e80e38'
+        delegating:
+            providers:
+                - openweathermap
+                - wunderground
+        cached:
+            provider: delegating
+            ttl: 30

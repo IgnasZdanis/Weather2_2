@@ -8,20 +8,23 @@
 
 namespace NfqWeatherBundle\Services;
 
-use Psr\Cache\CacheItemInterface;
-use Psr\Cache\CacheItemPoolInterface;
+//use Psr\Cache\CacheItemInterface;
 //use Symfony\Component\Cache\Simple\FilesystemCache;
 //use Nfq\Weather\DelegatingWeatherProvider;
+
+use Psr\Cache\CacheItemPoolInterface;
 
 class CachedWeatherProvider implements WeatherProviderInterface
 {
     private $cache;
+    private $ttl;
     private $weatherProvider;
 
-    public function __construct(WeatherProviderInterface $weatherProvider, CacheItemPoolInterface $cache)
+    public function __construct(WeatherProviderInterface $weatherProvider, $ttl, CacheItemPoolInterface $cache)
     {
         $this->cache = $cache;
         $this->weatherProvider = $weatherProvider;
+        $this->ttl = $ttl;
     }
 
     public function fetch(Location $location): Weather
@@ -29,6 +32,7 @@ class CachedWeatherProvider implements WeatherProviderInterface
         $weather = $this->cache->getItem((string)$location);
         if(!$weather->isHit()) {
             $weather->set($this->weatherProvider->fetch($location));
+            $weather->expiresAfter($this->ttl);
             $this->cache->save($weather);
         }
         return $weather->get();

@@ -2,8 +2,12 @@
 
 namespace NfqWeatherBundle\DependencyInjection;
 
+use NfqWeatherBundle\Services\CachedWeatherProvider;
+use NfqWeatherBundle\Services\DelegatingWeatherProvider;
 use NfqWeatherBundle\Services\NfqWeather;
 use NfqWeatherBundle\Services\OpenWeatherMapWeatherProvider;
+use NfqWeatherBundle\Services\WundergroundWeatherProvider;
+use Symfony\Component\Cache\Adapter\FilesystemAdapter;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\Reference;
@@ -22,27 +26,38 @@ class NfqWeatherExtension extends Extension
      */
     public function load(array $configs, ContainerBuilder $container)
     {
-        $container
-            ->register('openweather', OpenWeatherMapWeatherProvider::class)
-            ->addArgument('f46ee0a183d63a6bd806a57cffcd69bd');
-        $container
-            ->register('wunderground', OpenWeatherMapWeatherProvider::class)
-            ->addArgument('69286ad737e80e38');
-        $container
-            ->register('nfq_weather', NfqWeather::class)
-            ->addArgument(new Reference('openweather'));
         $configuration = new Configuration();
         $config = $this->processConfiguration($configuration, $configs);
 
         $loader = new Loader\YamlFileLoader($container, new FileLocator(__DIR__ . '/../Resources/config'));
         $loader->load('services.yml');
 
-        $def = $container->getDefinition('nfq_weather');
-        if ($config['provider'] === 'openweathermap') {
-            $def->replaceArgument(0, new Reference('openweather'));
+        $container
+            ->register('cache', FilesystemAdapter::class);
+        $container
+            ->register('openweathermap', OpenWeatherMapWeatherProvider::class)
+            ->addArgument($config['providers']['openweathermap']['api_key']);
+        $container
+            ->register('wunderground', WundergroundWeatherProvider::class)
+            ->addArgument($config['providers']['wunderground']['api_key']);
+        $delegatingProviders = $config['providers']['delegating']['providers'];
+        $delegatingProviderArray = [];
+        if(in_array('openweathermap', $delegatingProviders)) {
+            array_push($delegatingProviderArray, new Reference('openweathermap'));
         }
-        if ($config['provider'] === 'wundergroung') {
-            $def->replaceArgument(0, new Reference('wunderground'));
+        if(in_array('wunderground', $delegatingProviders)) {
+            array_push($delegatingProviderArray, new Reference('wunderground'));
         }
+        $container
+            ->register('delegating', DelegatingWeatherProvider::class)
+            ->addArgument($delegatingProviderArray);
+        $container
+            ->register('cached', CachedWeatherProvider::class)
+            ->addArgument(new Reference($config['providers']['cached']['provider']))
+            ->addArgument($config['providers']['cached']['ttl'])
+            ->addArgument(new Reference('cache'));
+        $container
+            ->register('nfq_weather', NfqWeather::class)
+            ->addArgument(new Reference($config['provider']));
     }
 }

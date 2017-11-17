@@ -15,12 +15,9 @@ class DefaultController extends Controller
     public function indexAction(Request $request)
     {
         // replace this example code with whatever you need
-        echo('asd');
-        $asd = $this->container->get('nfq_weather');
-        $location = new Location(50, 50);
-        var_dump($asd->fetch($location));
-        return $this->render('default/index.html.twig', [
-            'base_dir' => realpath($this->getParameter('kernel.root_dir').'/..').DIRECTORY_SEPARATOR,
-        ]);
+        $provider = $this->container->get('nfq_weather');
+        $location = new Location(54.6872, 25.2797);
+        var_dump($provider->fetch($location));
+        return $this->render('default/index.html.twig');
     }
 }

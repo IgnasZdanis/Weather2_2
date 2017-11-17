@@ -21,26 +21,41 @@ class Configuration implements ConfigurationInterface
         $rootNode = $treeBuilder->root('nfq_weather');
         $rootNode
             ->children()
-                ->scalarNode('provider')->end()
-//                ->arrayNode('providers')
-//                    ->children()
-//                        ->arrayNode('openweathermap')
-//                            ->children()
-//                                ->scalarNode('api_key')->end()
-//                            ->end()
-//                        ->arrayNode('wunderground')
-//                            ->children()
-//                                ->scalarNode('api_key')->end()
-//                            ->end()
-//                        ->end()
-//                    ->end()
-//                ->end()
+                ->enumNode('provider')
+                    ->values(['openweathermap', 'wunderground', 'delegating', 'cached'])
+                ->end()
+                ->arrayNode('providers')
+                    ->children()
+                        ->arrayNode('openweathermap')
+                            ->children()
+                                ->scalarNode('api_key')->end()
+                            ->end()
+                        ->end()
+                        ->arrayNode('wunderground')
+                            ->children()
+                                ->scalarNode('api_key')->end()
+                            ->end()
+                        ->end()
+                        ->arrayNode('delegating')
+                            ->children()
+                                ->arrayNode('providers')
+                                    ->prototype('scalar')->end()
+                                ->end()
+                            ->end()
+                        ->end()
+                        ->arrayNode('cached')
+                            ->children()
+                                ->enumNode('provider')
+                                    ->values(['openweathermap', 'wunderground', 'delegating'])
+                                ->end()
+                                ->integerNode('ttl')
+                                    ->min(0)
+                                ->end()
+                            ->end()
+                        ->end()
+                    ->end()
+                ->end()
             ->end();
-
-        // Here you should define the parameters that are allowed to
-        // configure your bundle. See the documentation linked above for
-        // more information on that topic.
-
         return $treeBuilder;
     }
 }
